@@ -7,4 +7,8 @@ r.set('foo', 'Bar')
 print(r.get('foo'))
 print(r.get('name'))
 
-print(r.set('hello'))
+print(r.set('hello') )
+
+"""
+注释
+"""
