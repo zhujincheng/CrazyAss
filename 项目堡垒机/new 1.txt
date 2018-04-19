@@ -1,0 +1,98 @@
+一：详细介绍：
+    1.由办公系统==》idc数据中心。（VPN ）虚拟通道 在此通道有数据但是一般人不能进来
+二：功能：
+    1.权限管理
+      权限分配混乱  
+    2.用户行为审计
+      大家公用一套root账号
+      通过我们的系统连接进来
+三：架构及功能需求：
+    1.权限管理
+      小胡 监控组 3台机器 root
+      必胜 论坛组 300台机器 mysql
+      李欢 广告组 200 root
+    2.用户连接进来，我帮助他连接系统  
+四：技术实现
+  1.基本能实现连接操作并记录操作（不太好用）
+    paramiko
+    基于select io多路复用实现效率不高
+      其中用到sys.stdin.readline()标准输入
+      sys.stdout(str)标准输出
+    paramiko是一个用于做远程控制模块，使用改模快可以对远程服务器进行命令或文件操作，值得一说的是
+    fabric和ansible的远程管理就是使用的paramiko
+    安装paramiko sudo pip3 install -i https://pypi.tuna.tsinghua.edu.cn/simple
+    paramiko使用教程 https://www.cnblogs.com/wupeiqi/articles/4963027.html
+    paramiko只试用于少数连接少量操作 如连接成功进行vim操作将会乱套
+    利用paramiko连接界面不太友好
+  2.利用原生ssh实现操作记录（修改过的）  
+    下载开源软件sshpass（跳过输入yes或no）
+    1.因为直接用ssh连接会叫我们输入yes或no在脚本中不能输入yes或no输入命令跳过
+    下载sshpass免交互 https://sourceforge.net/projects/sshpass/?source=typ_redirect
+    解压tar xvzf sshpass-1.06.tar.gz 
+    进入
+    zhujincheng@zhujincheng-virtual-machine:~$ cd sshpass-1.06/
+    zhujincheng@zhujincheng-virtual-machine:~/sshpass-1.06$ ls
+    aclocal.m4  ChangeLog  config.h.in  configure.ac  depcomp  install-sh  Makefile.am  missing  README
+    AUTHORS     compile    configure    COPYING       INSTALL  main.c      Makefile.in  NEWS     sshpass.1
+    zhujincheng@zhujincheng-virtual-machine:~/sshpass-1.06$ ^C
+    详细教程如下https://github.com/triaquae/CrazyEye
+    sshpass 使用教程连接 blog.csdn.net/gsnumen/article/details/7293274
+    免输入yes sshpass -p 452335710 ssh yaohong@192.168.0.125 -o "StrictHostKeyCheckin
+    注意事项：
+        在其他用户改别的用户的资料时vim必须强制保存 切换到root wq！保存很方便
+        cp - rp 复制文件到某个文件
+        chown 改组名
+    2.目前还不支持用户审计不能记录用户操作
+        用到的linux命令 ps -ef查看所有进程
+        .bashrc 用户的环境变量配置文件
+        strace -h 所有操作命令
+        sudo strace  -f -p 进程PID查看进程随时动态
+        sudo strace -f -p PID -o ssh.log(-o是写进文件)
+        sudo strace -f -t -p PID -o ssh.log(-o是写进文件)时间也写进文件
+        more ssh.log|grep 'read(4' 过滤
+        
+        具体操作看man
+        
+        思路一：改ssh源码用c语言写的代码复杂看不懂
+        思路二：利用sudo strace -f -p PID -o ssh.log(-o是写进文件)抓包形式
+        接着抓包之后 
+            1.在每次连接堡垒机的时候自动写进文件首先得找到进程ID
+            2.在xshell下无法抓取到包所以只能在linux里抓取堡垒机linux机器 
+            3.用到的命令 ps -ef|grep 192.168.0.125|grep -v sshpass(-v过滤掉)
+            zhujinc+   3437   2706  0 16:14 pts/21   00:00:00 grep --color=auto 192.168.0.125
+              ps -ef|grep 192.168.0.125|grep -v ssh|awk '{print $2}'（找到某某值输出 这里找到3437）
+              找到源码openssh
+              加入权限编译ssh源码 chmod 755 config
+              sudo chown -R crazyass CrazyAss(把当前用户的属组改成crazyass )
+              装入指定位置不然会冲掉原生ssh./configure --prefix=/usr/local/openssh7
+              这里会出错（安装需要插件上面链接）
+              ./configure --prefix 生成编译的配置
+              make 编译成2进制
+              make install 安装后二进制
+              make clean清除上次编译缓存
+              用shell语言写
+            4.缺陷 上传下载文件不能监控
+        inux下装的软件一般在/urs/local/或者 、opt/
+    3.前面是通过客户端连接堡垒机，现在还可以通过web连接下载连接https://github.com/shellinabox/shellinabox            
+    4.在前端批量执行命令时用到    
+        概念，生产者消费者模型
+                解耦（互不影响，互不干预，降低程序的依赖）
+                异步
+    
+        前端标签功能：
+            toggle（）点击显示点击隐藏
+            function PostTask(){
+                var cmd_text=$("#cmd_input").val().trim()找到值去除两边的空格
+                var selected_host_ids=[]
+                $("[tag='host-select']:checked").each(function(){
+                    selected_host_ids.push($(this).val())
+                })
+            }
+            $.post("{% url 'batch_task_mgr'%}",data,function(callback){
+            
+            }
+            
+            )
+            subprocess.open
+        
+    
