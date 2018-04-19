@@ -6,5 +6,7 @@ r = redis.Redis(host='192.168.0.125', port=6379,)
 r.set('foo', 'Bar')
 print(r.get('foo'))
 print(r.get('name'))
-
 print(r.set('hello'))
+"""
+注释1
+"""
